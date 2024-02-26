@@ -13,34 +13,18 @@ public class Object implements Serializable {
     private int objId;
     private String name;
     private List<Param> paramList;
-    private boolean isInterrupt = false;
 
     public Object(int objId, String name) {
         this.objId = objId;
         this.name = name;
     }
 
-    public Object(int objId, String name, List<Param> paramList, boolean isInterrupt) {
-        this.objId = objId;
-        this.name = name;
-        this.paramList = paramList;
-        this.isInterrupt = isInterrupt;
-    }
-
     public int getObjId() {
         return objId;
     }
 
-    public void setObjId(int objId) {
-        this.objId = objId;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public List<Param> getParamList() {
@@ -51,21 +35,12 @@ public class Object implements Serializable {
         this.paramList = paramList;
     }
 
-    public boolean isInterrupt() {
-        return isInterrupt;
-    }
-
-    public void setInterrupt(boolean interrupt) {
-        isInterrupt = interrupt;
-    }
-
     @Override
     public String toString() {
         return new StringJoiner(", ", Object.class.getSimpleName() + "[", "]")
                 .add("objId=" + objId)
                 .add("name='" + name + "'")
                 .add("paramList=" + paramList)
-                .add("isInterrupt=" + isInterrupt)
                 .toString();
     }
 }

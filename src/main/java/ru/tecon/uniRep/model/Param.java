@@ -10,30 +10,29 @@ import java.util.StringJoiner;
  */
 public class Param implements Serializable {
 
-    private int parId;
+    private Integer parId;
     private String parName;
     private String tecProc;
     private String units;
     private String total;
+    private String statAggr;
     private List<Value> curDateParam;
 
-    public Param() {
-    }
-
-    public Param(int parId, String parName, String tecProc, String units, String total, List<Value> curDateParam) {
+    public Param(Integer parId, String parName, String tecProc, String units, String total, String statAggr, List<Value> curDateParam) {
         this.parId = parId;
         this.parName = parName;
         this.tecProc = tecProc;
         this.units = units;
         this.total = total;
+        this.statAggr = statAggr;
         this.curDateParam = curDateParam;
     }
 
-    public int getParId() {
+    public Integer getParId() {
         return parId;
     }
 
-    public void setParId(int parId) {
+    public void setParId(Integer parId) {
         this.parId = parId;
     }
 
@@ -69,28 +68,20 @@ public class Param implements Serializable {
         this.total = total;
     }
 
-//    public String getParCateg() {
-//        return parCateg;
-//    }
-//
-//    public void setParCateg(String parCateg) {
-//        this.parCateg = parCateg;
-//    }
-//
-//    public String getDifInt() {
-//        return difInt;
-//    }
-//
-//    public void setDifInt(String difInt) {
-//        this.difInt = difInt;
-//    }
-
     public List<Value> getCurDateParam() {
         return curDateParam;
     }
 
     public void setCurDateParam(List<Value> curDateParam) {
         this.curDateParam = curDateParam;
+    }
+
+    public String getStatAggr() {
+        return statAggr;
+    }
+
+    public void setStatAggr(String statAggr) {
+        this.statAggr = statAggr;
     }
 
     @Override
@@ -101,8 +92,7 @@ public class Param implements Serializable {
                 .add("tecProc='" + tecProc + "'")
                 .add("units='" + units + "'")
                 .add("total='" + total + "'")
-//                .add("parCateg='" + parCateg + "'")
-//                .add("difInt='" + difInt + "'")
+                .add("statAggr='" + statAggr + "'")
                 .add("curDateParam=" + curDateParam)
                 .toString();
     }
