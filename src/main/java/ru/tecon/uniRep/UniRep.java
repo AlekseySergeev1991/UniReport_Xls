@@ -10,13 +10,11 @@ import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFColor;
-import ru.tecon.uniRep.model.Object;
-import ru.tecon.uniRep.model.Param;
-import ru.tecon.uniRep.model.RepType;
-import ru.tecon.uniRep.model.Value;
+import ru.tecon.uniRep.model.*;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -25,8 +23,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,13 +33,13 @@ public class UniRep {
 
     private static final Logger LOGGER = Logger.getLogger(UniRep.class.getName());
     private static final String LOAD_REP_TYPE = "SELECT * FROM td_rep.get_rep_info (?)";
-    private static final String LOAD_OBJECT = "select obj_id,  admin.get_obj_name (obj_id) from td_rep.get_objects_from_mask (?);";
+    private static final String LOAD_OBJECT = "SELECT obj_id, obj_name, obj_address FROM td_rep.get_full_objects_from_mask(?)";
     private static final String LOAD_PARAMS = "SELECT * FROM td_rep.get_common_obj_par_values (?, ?, ?, ?, ?)";
     private static final String PERCENT = "call td_rep.set_run_procent(?, ?)";
     private static final String INTERRUPTED = "SELECT STATUS FROM td_rep.get_rep_info (?)";
     private static final String DELSQL = "delete from admin.REP_BLOB where REP_id = ?";
     private static final String SQL = "call td_rep.ins_rep_blob(?,?,?::integer)";
-    private static final String FINSQL = "update admin.REP_REPORT set RUN_PROCENT = 100, STATUS = 'F' where id = ?";
+    private static final String FINSQL = "update admin.REP_REPORT set STATUS = 'F' where id = ?";
 
     private DataSource dsR;
     public void setDsR(DataSource dsR) {
@@ -68,7 +67,7 @@ public class UniRep {
         try {
             w = mr.printReport(p_Rep_Id);
             mr.saveReportIntoTable (w, p_Rep_Id, dsRW);
-//            mr.saveReportIntoFile(w, "C:\\abc\\TESTDel.xlsx");
+//            mr.saveReportIntoFile(w, "C:\\abc\\MOEK_Big_64328.xlsx");
         } catch (IOException | SQLException | ParseException | DecoderException e) {
             LOGGER.log(Level.WARNING, "makeReport error", e);
             e.printStackTrace();
@@ -97,52 +96,29 @@ public class UniRep {
         long cols = 0;
         List<LocalDateTime> dateList = new ArrayList<>();
         LocalDateTime localDateTemp = repType.getBeg();
-        switch (repType.getInterval()) {
-            case ("H"):
-                // Считаем количество часов между датами; Для часов убираем последний час
-                if (repType.getEnd().getYear() == repType.getBeg().getYear() && repType.getEnd().getMonth() == repType.getBeg().getMonth()
+
+        dateList.add(localDateTemp);
+        //-- Считаем количество дней между датами
+        if (repType.getEnd().getYear() == repType.getBeg().getYear() && repType.getEnd().getMonth() == repType.getBeg().getMonth()
                 && repType.getEnd().getDayOfMonth() == repType.getBeg().getDayOfMonth()) {
-                    for (int i = 0; i < 24; i++) {
-                        cols++;
-                        localDateTemp = localDateTemp.plusHours(1);
+
+            cols++;
+        } else {
+            for (;;) {
+                if (cols == 0 || repType.getEnd().isAfter(localDateTemp)) {
+                    if (cols != 0) {
+                        localDateTemp = localDateTemp.plusDays(1);
                         dateList.add(localDateTemp);
                     }
-                } else {
-                    for (;;) {
-                        if (cols == 0 || repType.getEnd().plusDays(1).isAfter(localDateTemp)) {
-                            cols++;
-                            localDateTemp = localDateTemp.plusHours(1);
-                            dateList.add(localDateTemp);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                break;
-
-            case ("D"):
-                dateList.add(localDateTemp);
-                //-- Считаем количество дней между датами
-                if (repType.getEnd().getYear() == repType.getBeg().getYear() && repType.getEnd().getMonth() == repType.getBeg().getMonth()
-                        && repType.getEnd().getDayOfMonth() == repType.getBeg().getDayOfMonth()) {
-
                     cols++;
                 } else {
-                    for (;;) {
-                        if (cols == 0 || repType.getEnd().isAfter(localDateTemp)) {
-                            if (cols != 0) {
-                                localDateTemp = localDateTemp.plusDays(1);
-                                dateList.add(localDateTemp);
-                            }
-                            cols++;
-                        } else {
-                            break;
-                        }
-                    }
+                    break;
                 }
-                break;
+            }
         }
-
+        if (repType.getInterval().equals("H")) {
+            cols = cols*24;
+        }
         // Пожалуй, наполню-ка я лист отдельным методом. И сначала заполняем его, чтобы узнать Rows. Cols
 
         // Колонок - 4 первых и колонка с датами
@@ -154,10 +130,13 @@ public class UniRep {
 
 
         // Устанавливаем ширины колонок. В конце мероприятия
-        sh.setColumnWidth(0, 3 * 256);
-        sh.setColumnWidth(1, 32 * 256);
-        sh.setColumnWidth(2, 12 * 256);
-        for (int i = 3; i < cols; i++) {
+        sh.setColumnWidth(0, 6 * 256);
+        sh.setColumnWidth(1, 39 * 256);
+        sh.setColumnWidth(2, 14 * 256);
+        sh.setColumnWidth(3, 14 * 256);
+        sh.setColumnWidth(4, 14 * 256);
+
+        for (int i = 5; i < cols; i++) {
             sh.setColumnWidth(i, 10 * 256);
         }
 
@@ -165,7 +144,7 @@ public class UniRep {
         row_1.setHeight((short) 435);
         SXSSFCell cell_1_1 = row_1.createCell(0);
         cell_1_1.setCellValue("ПАО \"МОЭК\": АС \"ТЕКОН - Диспетчеризация\"");
-        CellRangeAddress title = new CellRangeAddress(0, 0, 0, 17);
+        CellRangeAddress title = new CellRangeAddress(0, 0, 0, 4);
         sh.addMergedRegion(title);
         cell_1_1.setCellStyle(headerStyle);
 
@@ -173,7 +152,7 @@ public class UniRep {
         row_2.setHeight((short) 435);
         SXSSFCell cell_2_1 = row_2.createCell(0);
         cell_2_1.setCellValue("Многофункциональный отчет");
-        CellRangeAddress formName = new CellRangeAddress(1, 1, 0, 17);
+        CellRangeAddress formName = new CellRangeAddress(1, 1, 0, 4);
         sh.addMergedRegion(formName);
         cell_2_1.setCellStyle(headerStyle);
 
@@ -188,7 +167,7 @@ public class UniRep {
         endFormatted = repType.getEnd();
         String stringEnd = endFormatted.format(formatter);
         cell_3_1.setCellValue("за период: " + stringBeg + " - " + stringEnd);
-        CellRangeAddress datePer = new CellRangeAddress(2, 2, 0, 17);
+        CellRangeAddress datePer = new CellRangeAddress(2, 2, 0, 4);
         sh.addMergedRegion(datePer);
         cell_3_1.setCellStyle(headerStyleNoBold);
 
@@ -206,7 +185,7 @@ public class UniRep {
                 break;
         }
         cell_4_1.setCellValue("Интервал: " + interval);
-        CellRangeAddress intervalR = new CellRangeAddress(3, 3, 0, 17);
+        CellRangeAddress intervalR = new CellRangeAddress(3, 3, 0, 4);
         sh.addMergedRegion(intervalR);
         cell_4_1.setCellStyle(headerStyleNoBold);
 
@@ -217,7 +196,7 @@ public class UniRep {
         SXSSFCell cell_5_1 = row_5.createCell(0);
         cell_5_1.setCellStyle(nowStyle);
         cell_5_1.setCellValue("Отчет сформирован  " + now);
-        CellRangeAddress nowDone = new CellRangeAddress(4, 4, 0, 17);
+        CellRangeAddress nowDone = new CellRangeAddress(4, 4, 0, 4);
         sh.addMergedRegion(nowDone);
 
         // Прекрасно, Заголовок сделали. Готовим шапку.
@@ -284,11 +263,10 @@ public class UniRep {
             RegionUtil.setBorderTop(BorderStyle.THICK, borderForTotal, sh);
             RegionUtil.setBorderLeft(BorderStyle.THICK, borderForTotal, sh);
             RegionUtil.setBorderRight(BorderStyle.THICK, borderForTotal, sh);
-
-            for (int i = 0; i < dateList.size()/24; i++) {
+            for (int i = 0; i < dateList.size(); i++) {
                 SXSSFCell dateCell = row_7.createCell(i*24 + 5);
                 dateCell.setCellStyle(tableHeaderStyle);
-                String curDateString = dateList.get(i*24).format(formatter);
+                String curDateString = dateList.get(i).format(formatter);
                 dateCell.setCellValue(curDateString);
                 CellRangeAddress date = new CellRangeAddress(6, 6, i*24+5, i*24+28);
                 sh.addMergedRegion(date);
@@ -310,7 +288,12 @@ public class UniRep {
                     }
                 }
             }
+            sh.createFreezePane(5, 8);
+
+        } else {
+            sh.createFreezePane(5, 7);
         }
+
         // декларируем переменные для шапки
         SXSSFCell cell;
 
@@ -333,28 +316,30 @@ public class UniRep {
 
         fillSheet(wb, p_Rep_Id, begRow, repType.getMaskId(), repType.getBeg(), repType.getEnd(), repType.getInterval(), dateList);
 
+
         LOGGER.log(Level.INFO, "Report body created {0}", p_Rep_Id);
 
         return wb;
     }
 
-    private void fillSheet (SXSSFWorkbook wb, int p_Rep_Id, int begRow, int maskId, LocalDateTime begDate, LocalDateTime endDate, String status, List<LocalDateTime> dateList) throws DecoderException {
+    private void fillSheet (SXSSFWorkbook wb, int p_Rep_Id, int begRow, int maskId, LocalDateTime begDate, LocalDateTime endDate, String interval, List<LocalDateTime> dateList) throws DecoderException {
         SXSSFSheet sh = wb.getSheetAt(0);
         CellStyle cellBoldStyle = setCellBoldStyle(wb);
         CellStyle cellNoBoldStyle = setCellNoBoldStyle(wb);
 
         // Заполняем лист значениями, взятыми из таблицы
-        List<Object> objects = loadObjects(maskId, dsR);
+        List<ReportObject> objects = loadObjects(maskId, dsR);
         Rows = begRow;
         int objNum = 1;
         BigDecimal percentage = new BigDecimal(0);
         double size = objects.size();
         double iterationPercent = 100/size;
         BigDecimal iterationPercentBD = new BigDecimal(iterationPercent);
+        List<CellStyleClass> colors = new ArrayList<>();
 
-        for (Object object : objects) {
+        for (ReportObject object : objects) {
             if (!interrupted(p_Rep_Id , dsR).equals("Q")) {
-                object.setParamList(loadParams(maskId, object.getObjId(), begDate, endDate, status, dsR));
+                object.setParamList(loadParams(maskId, object.getObjId(), begDate, endDate, interval, dsR));
                 SXSSFRow row = sh.createRow(Rows);
                 SXSSFCell objNumCell = row.createCell(0);
                 objNumCell.setCellValue(objNum);
@@ -363,10 +348,30 @@ public class UniRep {
                 SXSSFCell objNameCell = row.createCell(1);
                 objNameCell.setCellValue(object.getName());
                 objNameCell.setCellStyle(cellBoldStyle);
-                for (int i = 2; i < dateList.size()+5; i++) {
-                    SXSSFCell cell = row.createCell(i);
-                    cell.setCellStyle(cellBoldStyle);
+
+                SXSSFCell objAddrCell = row.createCell(2);
+                objAddrCell.setCellValue(object.getAddres());
+                objAddrCell.setCellStyle(cellBoldStyle);
+                CellRangeAddress address = new CellRangeAddress(Rows, Rows, 2, 4);
+                sh.addMergedRegion(address);
+                CellRangeAddress borderForTotal = new CellRangeAddress(Rows, Rows, 2, 4);
+                RegionUtil.setBorderBottom(BorderStyle.THIN, borderForTotal, sh);
+                RegionUtil.setBorderTop(BorderStyle.THICK, borderForTotal, sh);
+                RegionUtil.setBorderLeft(BorderStyle.THIN, borderForTotal, sh);
+                RegionUtil.setBorderRight(BorderStyle.THIN, borderForTotal, sh);
+
+                if ("D".equals(interval)) {
+                    for (int i = 5; i < dateList.size()+5; i++) {
+                        SXSSFCell cell = row.createCell(i);
+                        cell.setCellStyle(cellBoldStyle);
+                    }
+                } else {
+                    for (int i = 5; i < (dateList.size()*24)+5; i++) {
+                        SXSSFCell cell = row.createCell(i);
+                        cell.setCellStyle(cellBoldStyle);
+                    }
                 }
+
                 Rows++;
                 for (Param param : object.getParamList()) {
                     SXSSFRow parRow = sh.createRow(Rows);
@@ -391,13 +396,34 @@ public class UniRep {
                         valueCell.setCellValue(value.getValue());
 
                         if (value.getColor() != null) {
-                            CellStyle cellColoredStyle = setCellNoBoldStyle(wb);
-                            String rgbS = value.getColor();
-                            byte [] rgbB = Hex.decodeHex(rgbS);
-                            XSSFColor color = new XSSFColor(rgbB, null);
-                            cellColoredStyle.setFillForegroundColor(color);
-                            cellColoredStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                            valueCell.setCellStyle(cellColoredStyle);
+                            if (colors.isEmpty()) {
+                                CellStyle cellColoredStyle = setCellNoBoldStyle(wb);
+                                String rgbS = value.getColor();
+                                byte [] rgbB = Hex.decodeHex(rgbS);
+                                XSSFColor color = new XSSFColor(rgbB, null);
+                                cellColoredStyle.setFillForegroundColor(color);
+                                cellColoredStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                                colors.add(new CellStyleClass(value.getColor(), cellColoredStyle));
+                                valueCell.setCellStyle(cellColoredStyle);
+                            } else {
+                                int i = 0;
+                                for (CellStyleClass styleForColoredCell : colors) {
+                                    if (styleForColoredCell.getColorHex().equals(value.getColor())) {
+                                        valueCell.setCellStyle(styleForColoredCell.getColoredCell());
+                                        i = 1;
+                                    }
+                                }
+                                if (i == 0) {
+                                    CellStyle cellColoredStyle = setCellNoBoldStyle(wb);
+                                    String rgbS = value.getColor();
+                                    byte [] rgbB = Hex.decodeHex(rgbS);
+                                    XSSFColor color = new XSSFColor(rgbB, null);
+                                    cellColoredStyle.setFillForegroundColor(color);
+                                    cellColoredStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                                    colors.add(new CellStyleClass(value.getColor(), cellColoredStyle));
+                                    valueCell.setCellStyle(cellColoredStyle);
+                                }
+                            }
                         } else {
                             valueCell.setCellStyle(cellNoBoldStyle);
                         }
@@ -452,14 +478,16 @@ public class UniRep {
         return result;
     }
 
-    public List<Object> loadObjects(int maskId, DataSource ds) {
-        List<Object> result = new ArrayList<>();
+    public List<ReportObject> loadObjects(int maskId, DataSource ds) {
+        List<ReportObject> result = new ArrayList<>();
         try (Connection connect = ds.getConnection();
              PreparedStatement stm = connect.prepareStatement(LOAD_OBJECT)) {
             stm.setInt(1, maskId);
             ResultSet res = stm.executeQuery();
             while (res.next()) {
-                Object item = new Object(res.getInt("obj_id"), res.getString("get_obj_name"));
+                ReportObject item = new ReportObject(res.getInt("obj_id"), res.getString("obj_name"),
+                        res.getString("obj_address"));
+
 
                 result.add(item);
             }
@@ -582,6 +610,7 @@ public class UniRep {
                 addBlob(p_wb, repId, dsRW);
                 finStmt.setLong(1, repId);
                 // выполняем запись. Ура, товарищи.
+                percent(repId, BigDecimal.valueOf(100),dsRW);
                 finStmt.executeUpdate();
             }
 

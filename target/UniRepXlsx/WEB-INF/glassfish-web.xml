@@ -4,24 +4,24 @@
 
 <glassfish-web-app>
 
-        <resource-ref>
-            <res-ref-name>jdbc/DataSourceR</res-ref-name>
-            <jndi-name>jdbc/PostgreSQLSandboxR</jndi-name>
-        </resource-ref>
+    <!--    <resource-ref>-->
+    <!--        <res-ref-name>jdbc/DataSourceR</res-ref-name>-->
+    <!--        <jndi-name>jdbc/PostgreSQLSandboxR</jndi-name>-->
+    <!--    </resource-ref>-->
 
-        <resource-ref>
-            <res-ref-name>jdbc/DataSourceRW</res-ref-name>
-            <jndi-name>jdbc/PostgreSQLSandboxRW</jndi-name>
-        </resource-ref>
+    <!--    <resource-ref>-->
+    <!--        <res-ref-name>jdbc/DataSourceRW</res-ref-name>-->
+    <!--        <jndi-name>jdbc/PostgreSQLSandboxRW</jndi-name>-->
+    <!--    </resource-ref>-->
 
-<!--    <resource-ref>-->
-<!--        <res-ref-name>jdbc/DataSourceR</res-ref-name>-->
-<!--        <jndi-name>jdbc/PostgreSQLDataSourceR</jndi-name>-->
-<!--    </resource-ref>-->
+    <resource-ref>
+        <res-ref-name>jdbc/DataSourceR</res-ref-name>
+        <jndi-name>jdbc/PostgreSQLDataSourceR</jndi-name>
+    </resource-ref>
 
-<!--    <resource-ref>-->
-<!--        <res-ref-name>jdbc/DataSourceRW</res-ref-name>-->
-<!--        <jndi-name>jdbc/PostgreSQLDataSourceRW</jndi-name>-->
-<!--    </resource-ref>-->
+    <resource-ref>
+        <res-ref-name>jdbc/DataSourceRW</res-ref-name>
+        <jndi-name>jdbc/PostgreSQLDataSourceRW</jndi-name>
+    </resource-ref>
 
 </glassfish-web-app>
