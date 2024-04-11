@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,9 +57,11 @@ public class UniRep {
     private int Rows;
 
     //init метод при создании отчета
-    public static void makeReport (int p_Rep_Id, DataSource dsR, DataSource dsRW) {
+    public static void makeReport (int p_Rep_Id, DataSource dsR, DataSource dsRW) throws InterruptedException {
         long currentTime = System.nanoTime();
         LOGGER.log(Level.INFO, "start make report {0}", p_Rep_Id);
+
+        Thread.sleep(1000);
 
         UniRep mr = new UniRep();
         mr.setDsR(dsR);
@@ -67,7 +70,7 @@ public class UniRep {
         try {
             w = mr.printReport(p_Rep_Id);
             mr.saveReportIntoTable (w, p_Rep_Id, dsRW);
-//            mr.saveReportIntoFile(w, "C:\\abc\\MOEK_Big_64328.xlsx");
+//            mr.saveReportIntoFile(w, "C:\\abc\\MOEK_64636.xlsx");
         } catch (IOException | SQLException | ParseException | DecoderException e) {
             LOGGER.log(Level.WARNING, "makeReport error", e);
             e.printStackTrace();
@@ -136,7 +139,7 @@ public class UniRep {
         sh.setColumnWidth(3, 14 * 256);
         sh.setColumnWidth(4, 14 * 256);
 
-        for (int i = 5; i < cols; i++) {
+        for (int i = 5; i < cols+5; i++) {
             sh.setColumnWidth(i, 10 * 256);
         }
 
@@ -329,112 +332,110 @@ public class UniRep {
 
         // Заполняем лист значениями, взятыми из таблицы
         List<ReportObject> objects = loadObjects(maskId, dsR);
-        Rows = begRow;
-        int objNum = 1;
-        BigDecimal percentage = new BigDecimal(0);
-        double size = objects.size();
-        double iterationPercent = 100/size;
-        BigDecimal iterationPercentBD = new BigDecimal(iterationPercent);
-        List<CellStyleClass> colors = new ArrayList<>();
+        if (!objects.isEmpty()) {
+            Rows = begRow;
+            int objNum = 1;
+            BigDecimal percentage = new BigDecimal(0);
+            double size = objects.size();
+            double iterationPercent = 100/size;
+            BigDecimal iterationPercentBD = new BigDecimal(iterationPercent);
+            HashMap<String, CellStyle> colors = new HashMap<>();
 
-        for (ReportObject object : objects) {
-            if (!interrupted(p_Rep_Id , dsR).equals("Q")) {
-                object.setParamList(loadParams(maskId, object.getObjId(), begDate, endDate, interval, dsR));
-                SXSSFRow row = sh.createRow(Rows);
-                SXSSFCell objNumCell = row.createCell(0);
-                objNumCell.setCellValue(objNum);
-                objNumCell.setCellStyle(cellBoldStyle);
-                objNum++;
-                SXSSFCell objNameCell = row.createCell(1);
-                objNameCell.setCellValue(object.getName());
-                objNameCell.setCellStyle(cellBoldStyle);
+            for (ReportObject object : objects) {
+                if (!interrupted(p_Rep_Id , dsR).equals("Q")) {
+                    object.setParamList(loadParams(maskId, object.getObjId(), begDate, endDate, interval, dsR));
+                    SXSSFRow row = sh.createRow(Rows);
+                    SXSSFCell objNumCell = row.createCell(0);
+                    objNumCell.setCellValue(objNum);
+                    objNumCell.setCellStyle(cellBoldStyle);
+                    objNum++;
+                    SXSSFCell objNameCell = row.createCell(1);
+                    objNameCell.setCellValue(object.getName());
+                    objNameCell.setCellStyle(cellBoldStyle);
 
-                SXSSFCell objAddrCell = row.createCell(2);
-                objAddrCell.setCellValue(object.getAddres());
-                objAddrCell.setCellStyle(cellBoldStyle);
-                CellRangeAddress address = new CellRangeAddress(Rows, Rows, 2, 4);
-                sh.addMergedRegion(address);
-                CellRangeAddress borderForTotal = new CellRangeAddress(Rows, Rows, 2, 4);
-                RegionUtil.setBorderBottom(BorderStyle.THIN, borderForTotal, sh);
-                RegionUtil.setBorderTop(BorderStyle.THICK, borderForTotal, sh);
-                RegionUtil.setBorderLeft(BorderStyle.THIN, borderForTotal, sh);
-                RegionUtil.setBorderRight(BorderStyle.THIN, borderForTotal, sh);
+                    SXSSFCell objAddrCell = row.createCell(2);
+                    objAddrCell.setCellValue(object.getAddres());
+                    objAddrCell.setCellStyle(cellBoldStyle);
+                    CellRangeAddress address = new CellRangeAddress(Rows, Rows, 2, 4);
+                    sh.addMergedRegion(address);
+                    CellRangeAddress borderForTotal = new CellRangeAddress(Rows, Rows, 2, 4);
+                    RegionUtil.setBorderBottom(BorderStyle.THIN, borderForTotal, sh);
+                    RegionUtil.setBorderTop(BorderStyle.THICK, borderForTotal, sh);
+                    RegionUtil.setBorderLeft(BorderStyle.THIN, borderForTotal, sh);
+                    RegionUtil.setBorderRight(BorderStyle.THIN, borderForTotal, sh);
 
-                if ("D".equals(interval)) {
-                    for (int i = 5; i < dateList.size()+5; i++) {
-                        SXSSFCell cell = row.createCell(i);
-                        cell.setCellStyle(cellBoldStyle);
+                    if ("D".equals(interval)) {
+                        for (int i = 5; i < dateList.size()+5; i++) {
+                            SXSSFCell cell = row.createCell(i);
+                            cell.setCellStyle(cellBoldStyle);
+                        }
+                    } else {
+                        for (int i = 5; i < (dateList.size()*24)+5; i++) {
+                            SXSSFCell cell = row.createCell(i);
+                            cell.setCellStyle(cellBoldStyle);
+                        }
                     }
-                } else {
-                    for (int i = 5; i < (dateList.size()*24)+5; i++) {
-                        SXSSFCell cell = row.createCell(i);
-                        cell.setCellStyle(cellBoldStyle);
-                    }
-                }
 
-                Rows++;
-                for (Param param : object.getParamList()) {
-                    SXSSFRow parRow = sh.createRow(Rows);
-                    SXSSFCell emptyNumCell = parRow.createCell(0);
-                    emptyNumCell.setCellStyle(cellNoBoldStyle);
-                    SXSSFCell parNameCell = parRow.createCell(1);
-                    parNameCell.setCellValue(param.getParName());
-                    parNameCell.setCellStyle(cellNoBoldStyle);
-                    SXSSFCell techProcCell = parRow.createCell(2);
-                    techProcCell.setCellValue(param.getTecProc());
-                    techProcCell.setCellStyle(cellNoBoldStyle);
-                    SXSSFCell unitCell = parRow.createCell(3);
-                    unitCell.setCellValue(param.getUnits());
-                    unitCell.setCellStyle(cellNoBoldStyle);
-                    SXSSFCell totalCell = parRow.createCell(4);
-                    totalCell.setCellValue(param.getTotal());
-                    totalCell.setCellStyle(cellNoBoldStyle);
                     Rows++;
-                    int colNum = 0;
-                    for (Value value : param.getCurDateParam()) {
-                        SXSSFCell valueCell = parRow.createCell(5 + colNum);
-                        valueCell.setCellValue(value.getValue());
+                    for (Param param : object.getParamList()) {
+                        SXSSFRow parRow = sh.createRow(Rows);
+                        SXSSFCell emptyNumCell = parRow.createCell(0);
+                        emptyNumCell.setCellStyle(cellNoBoldStyle);
+                        SXSSFCell parNameCell = parRow.createCell(1);
+                        parNameCell.setCellValue(param.getParName());
+                        parNameCell.setCellStyle(cellNoBoldStyle);
+                        SXSSFCell techProcCell = parRow.createCell(2);
+                        techProcCell.setCellValue(param.getTecProc());
+                        techProcCell.setCellStyle(cellNoBoldStyle);
+                        SXSSFCell unitCell = parRow.createCell(3);
+                        unitCell.setCellValue(param.getUnits());
+                        unitCell.setCellStyle(cellNoBoldStyle);
+                        SXSSFCell totalCell = parRow.createCell(4);
+                        totalCell.setCellValue(param.getTotal());
+                        totalCell.setCellStyle(cellNoBoldStyle);
+                        Rows++;
+                        int colNum = 0;
+                        for (Value value : param.getCurDateParam()) {
+                            SXSSFCell valueCell = parRow.createCell(5 + colNum);
+                            valueCell.setCellValue(value.getValue());
 
-                        if (value.getColor() != null) {
-                            if (colors.isEmpty()) {
-                                CellStyle cellColoredStyle = setCellNoBoldStyle(wb);
-                                String rgbS = value.getColor();
-                                byte [] rgbB = Hex.decodeHex(rgbS);
-                                XSSFColor color = new XSSFColor(rgbB, null);
-                                cellColoredStyle.setFillForegroundColor(color);
-                                cellColoredStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                                colors.add(new CellStyleClass(value.getColor(), cellColoredStyle));
-                                valueCell.setCellStyle(cellColoredStyle);
-                            } else {
-                                int i = 0;
-                                for (CellStyleClass styleForColoredCell : colors) {
-                                    if (styleForColoredCell.getColorHex().equals(value.getColor())) {
-                                        valueCell.setCellStyle(styleForColoredCell.getColoredCell());
-                                        i = 1;
-                                    }
-                                }
-                                if (i == 0) {
+                            if (value.getColor() != null) {
+                                if (colors.containsKey(value.getColor())) {
+                                    valueCell.setCellStyle(colors.get(value.getColor()));
+                                } else {
                                     CellStyle cellColoredStyle = setCellNoBoldStyle(wb);
                                     String rgbS = value.getColor();
                                     byte [] rgbB = Hex.decodeHex(rgbS);
                                     XSSFColor color = new XSSFColor(rgbB, null);
                                     cellColoredStyle.setFillForegroundColor(color);
                                     cellColoredStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                                    colors.add(new CellStyleClass(value.getColor(), cellColoredStyle));
+                                    colors.put(value.getColor(), cellColoredStyle);
                                     valueCell.setCellStyle(cellColoredStyle);
                                 }
+                            } else {
+                                valueCell.setCellStyle(cellNoBoldStyle);
                             }
-                        } else {
-                            valueCell.setCellStyle(cellNoBoldStyle);
+                            colNum++;
                         }
-                        colNum++;
                     }
-                }
-                percentage = percentage.add(iterationPercentBD).setScale(3, RoundingMode.DOWN);
+                    percentage = percentage.add(iterationPercentBD).setScale(3, RoundingMode.DOWN);
                 percent(p_Rep_Id, percentage, dsRW);
-            } else {
-                break;
+//                    System.out.println(percentage);
+                } else {
+                    break;
+                }
             }
+        } else {
+            if ("H".equals(interval)) {
+                SXSSFRow row_9 = sh.createRow(8);
+                SXSSFCell cell_9_1 = row_9.createCell(1);
+                cell_9_1.setCellValue("Не выбран ни один объект");
+            } else {
+                SXSSFRow row_8 = sh.createRow(7);
+                SXSSFCell cell_8_1 = row_8.createCell(1);
+                cell_8_1.setCellValue("Не выбран ни один объект");
+            }
+
         }
     }
 
@@ -503,6 +504,7 @@ public class UniRep {
 
         try (Connection connect = ds.getConnection();
              PreparedStatement stm = connect.prepareStatement(LOAD_PARAMS)) {
+
             stm.setInt(1, maskId);
             stm.setInt(2, objId);
             stm.setString(3, status);

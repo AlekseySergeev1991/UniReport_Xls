@@ -25,6 +25,12 @@ public class UniRepBean {
 
     public void createReport(int reportId) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> UniRep.makeReport(reportId, dsR, dsRW));
+        executor.execute(() -> {
+            try {
+                UniRep.makeReport(reportId, dsR, dsRW);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }
