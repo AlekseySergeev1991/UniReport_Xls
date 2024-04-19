@@ -61,8 +61,6 @@ public class UniRep {
         long currentTime = System.nanoTime();
         LOGGER.log(Level.INFO, "start make report {0}", p_Rep_Id);
 
-        Thread.sleep(1000);
-
         UniRep mr = new UniRep();
         mr.setDsR(dsR);
         mr.setDsRW(dsRW);
@@ -94,7 +92,7 @@ public class UniRep {
         SXSSFSheet sh = wb.createSheet("Отчет");
         int begRow = 7;  // строка в екселе, с которой начинается собственно отчет.
 
-        RepType repType = loadRepType(p_Rep_Id, dsR);
+        RepType repType = loadRepType(p_Rep_Id, dsRW);
 
         long cols = 0;
         List<LocalDateTime> dateList = new ArrayList<>();
