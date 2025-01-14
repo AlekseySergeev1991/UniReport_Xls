@@ -1,15 +1,13 @@
 package ru.tecon.uniRep.ejb;
 
+import jakarta.annotation.Resource;
+import jakarta.ejb.Stateless;
 import ru.tecon.uniRep.UniRep;
 
-import javax.annotation.Resource;
-import javax.ejb.Asynchronous;
-import javax.ejb.Stateless;
+
 import javax.sql.DataSource;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Stateless

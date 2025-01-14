@@ -418,7 +418,6 @@ public class UniRep {
                     }
                     percentage = percentage.add(iterationPercentBD).setScale(3, RoundingMode.DOWN);
                 percent(p_Rep_Id, percentage, dsRW);
-//                    System.out.println(percentage);
                 } else {
                     break;
                 }
@@ -441,7 +440,6 @@ public class UniRep {
 //        FileOutputStream fos;
 //        System.out.println("saveReportIntoFile");
 //        int res = 0;
-//
 //        try {
 //            fos = new FileOutputStream(file);
 //            workbook.write(fos);
